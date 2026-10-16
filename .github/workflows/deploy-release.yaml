@@ -87,9 +87,17 @@ jobs:
         run: |
           $image = "ghcr.io/$env:REPOSITORY`:$env:VERSION"
 
-          # Remove the previous container if it exists.
-          docker rm -f cicd-demo 2>$null
+          # Remove the existing container only if it exists
+          $existing = docker container inspect cicd-demo 2>$null
 
+          if ($LASTEXITCODE -eq 0) {
+            docker rm -f cicd-demo
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to remove the existing container."
+            }
+          }
+
+          # Start the new container
           docker run -d `
             --name cicd-demo `
             --restart unless-stopped `
@@ -97,8 +105,10 @@ jobs:
             $image
 
           if ($LASTEXITCODE -ne 0) {
-            throw "Failed to start the container."
+            throw "Failed to start the application container."
           }
+
+          Write-Host "Successfully deployed $image"
 
       - name: Verify container
         shell: powershell
