@@ -87,17 +87,23 @@ jobs:
         run: |
           $image = "ghcr.io/$env:REPOSITORY`:$env:VERSION"
 
-          # Remove the existing container only if it exists
-          $existing = docker container inspect cicd-demo 2>$null
+          # Find the existing container without triggering an error
+          $containers = docker ps -a --filter "name=^/cicd-demo$" --format "{{.Names}}"
 
-          if ($LASTEXITCODE -eq 0) {
+          if ($containers -contains "cicd-demo") {
+            Write-Host "Removing existing container..."
             docker rm -f cicd-demo
+
             if ($LASTEXITCODE -ne 0) {
-              throw "Failed to remove the existing container."
+              throw "Failed to remove existing container."
             }
+          } else {
+            Write-Host "No existing container. First deployment."
           }
 
-          # Start the new container
+          # Start the selected release
+          Write-Host "Deploying $image"
+
           docker run -d `
             --name cicd-demo `
             --restart unless-stopped `
@@ -105,10 +111,10 @@ jobs:
             $image
 
           if ($LASTEXITCODE -ne 0) {
-            throw "Failed to start the application container."
+            throw "Failed to start application container."
           }
 
-          Write-Host "Successfully deployed $image"
+          Write-Host "Deployment successful."
 
       - name: Verify container
         shell: powershell
