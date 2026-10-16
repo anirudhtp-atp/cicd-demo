@@ -1,0 +1,116 @@
+name: Deploy Release - Local
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to deploy (blank = latest release)"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: local-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, x64]
+    timeout-minutes: 10
+
+    steps:
+      - name: Resolve release version
+        id: release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          $version = $env:INPUT_VERSION.Trim()
+
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            $version = gh release view `
+              --repo $env:REPOSITORY `
+              --json tagName `
+              --jq .tagName
+
+            if ($LASTEXITCODE -ne 0 -or
+                [string]::IsNullOrWhiteSpace($version)) {
+              throw "Could not resolve the latest published release."
+            }
+          }
+          else {
+            gh release view $version --repo $env:REPOSITORY
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Release '$version' does not exist or is not published."
+            }
+          }
+
+          if ($version -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Invalid release tag: $version"
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Deploying release $version"
+
+      - name: Verify Docker Desktop
+        shell: pwsh
+        run: |
+          docker info
+          if ($LASTEXITCODE -ne 0) {
+            throw "Docker Desktop is unavailable."
+          }
+
+      - name: Pull release image
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          $image = "ghcr.io/$env:REPOSITORY`:$env:VERSION"
+
+          docker pull $image
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to pull $image"
+          }
+
+      - name: Deploy application
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          $image = "ghcr.io/$env:REPOSITORY`:$env:VERSION"
+
+          # Remove the previous container if it exists.
+          docker rm -f cicd-demo 2>$null
+
+          docker run -d `
+            --name cicd-demo `
+            --restart unless-stopped `
+            -p 8080:8080 `
+            $image
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to start the container."
+          }
+
+      - name: Verify container
+        shell: pwsh
+        run: |
+          Start-Sleep -Seconds 5
+
+          $status = docker inspect `
+            --format '{{.State.Running}}' cicd-demo
+
+          if ($LASTEXITCODE -ne 0 -or $status -ne "true") {
+            docker logs cicd-demo
+            throw "Application container is not running."
+          }
+
+          docker ps --filter "name=cicd-demo"
