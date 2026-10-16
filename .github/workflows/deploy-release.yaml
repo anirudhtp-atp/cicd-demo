@@ -128,7 +128,7 @@ jobs:
             throw "Failed to start application container."
           }
 
-          Write-Host "Deployment successful."
+          Write-Host "Deployed $image with profile $env:SPRING_PROFILE"
 
       - name: Verify container
         shell: powershell
