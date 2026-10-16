@@ -9,6 +9,18 @@ on:
         type: string
         default: ""
 
+      spring_profile:
+        description: "Spring Boot profile"
+        required: true
+        type: choice
+        options:
+          - local
+          - dev
+          - test
+          - staging
+          - prod
+        default: dev
+
 permissions:
   contents: read
 
@@ -84,6 +96,7 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
           REPOSITORY: ${{ github.repository }}
+          SPRING_PROFILE: ${{ inputs.spring_profile }}
         run: |
           $image = "ghcr.io/$env:REPOSITORY`:$env:VERSION"
 
@@ -108,6 +121,7 @@ jobs:
             --name cicd-demo `
             --restart unless-stopped `
             -p 8080:8080 `
+            -e "SPRING_PROFILES_ACTIVE=$env:SPRING_PROFILE" `
             $image
 
           if ($LASTEXITCODE -ne 0) {
