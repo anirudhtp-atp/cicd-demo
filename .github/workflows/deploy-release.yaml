@@ -24,7 +24,7 @@ jobs:
     steps:
       - name: Resolve release version
         id: release
-        shell: pwsh
+        shell: powershell
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_VERSION: ${{ inputs.version }}
@@ -59,7 +59,7 @@ jobs:
           Write-Host "Deploying release $version"
 
       - name: Verify Docker Desktop
-        shell: pwsh
+        shell: powershell
         run: |
           docker info
           if ($LASTEXITCODE -ne 0) {
@@ -67,7 +67,7 @@ jobs:
           }
 
       - name: Pull release image
-        shell: pwsh
+        shell: powershell
         env:
           VERSION: ${{ steps.release.outputs.version }}
           REPOSITORY: ${{ github.repository }}
@@ -80,7 +80,7 @@ jobs:
           }
 
       - name: Deploy application
-        shell: pwsh
+        shell: powershell
         env:
           VERSION: ${{ steps.release.outputs.version }}
           REPOSITORY: ${{ github.repository }}
@@ -101,7 +101,7 @@ jobs:
           }
 
       - name: Verify container
-        shell: pwsh
+        shell: powershell
         run: |
           Start-Sleep -Seconds 5
 
