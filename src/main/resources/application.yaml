@@ -4,3 +4,4 @@ spring:
 
 app:
     greet: "Default"
+    greet_secret: ${GREET_SECRET}

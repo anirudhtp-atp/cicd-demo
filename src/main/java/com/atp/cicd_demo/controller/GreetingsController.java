@@ -11,11 +11,14 @@ public class GreetingsController {
 	
 	@Value("${app.greet}")
 	private String greet;
+
+	@Value("${app.greet_secret}")
+	private String greetSecret;
 	
 	@GetMapping
 	public String greeting() {
 		
-		return "Hello %s".formatted(greet);
+		return "Hello %s [%s]".formatted(greet, greetSecret);
 		
 	}
 

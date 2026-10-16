@@ -9,17 +9,11 @@ on:
         type: string
         default: ""
 
-      spring_profile:
-        description: "Spring Boot profile"
+      environment:
+        description: "Deployment environment"
         required: true
-        type: choice
-        options:
-          - local
-          - dev
-          - test
-          - staging
-          - prod
-        default: dev
+        type: environment
+        default: local
 
 permissions:
   contents: read
@@ -32,7 +26,8 @@ jobs:
   deploy:
     runs-on: [self-hosted, windows, x64]
     timeout-minutes: 10
-
+    environment:
+      name: ${{ inputs.environment }}
     steps:
       - name: Resolve release version
         id: release
@@ -96,7 +91,8 @@ jobs:
         env:
           VERSION: ${{ steps.release.outputs.version }}
           REPOSITORY: ${{ github.repository }}
-          SPRING_PROFILE: ${{ inputs.spring_profile }}
+          DEPLOY_ENV: ${{ inputs.environment }}
+          GREET_SECRET: ${{ secrets.GREET_SECRET }}
         run: |
           $image = "ghcr.io/$env:REPOSITORY`:$env:VERSION"
 
@@ -121,7 +117,8 @@ jobs:
             --name cicd-demo `
             --restart unless-stopped `
             -p 8080:8080 `
-            -e "SPRING_PROFILES_ACTIVE=$env:SPRING_PROFILE" `
+            -e "SPRING_PROFILES_ACTIVE=$env:DEPLOY_ENV" `
+            -e "GREET_SECRET=$env:GREET_SECRET" `
             $image
 
           if ($LASTEXITCODE -ne 0) {
