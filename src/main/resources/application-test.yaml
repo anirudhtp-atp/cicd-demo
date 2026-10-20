@@ -1,0 +1,7 @@
+spring:
+    application:
+        name: cicd-demo
+
+app:
+    greet: "Default"
+    greet_secret: "test-secret"
