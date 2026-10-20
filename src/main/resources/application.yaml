@@ -1,8 +1,7 @@
 spring:
     application:
         name: cicd-demo
-    profiles:
-        active: local
+
 app:
     greet: "Default"
     greet_secret: ${GREET_SECRET}
