@@ -18,7 +18,7 @@ public class GreetingsController {
 	@GetMapping
 	public String greeting() {
 		
-		return "Hello %s [%s]".formatted(greet, greetSecret);
+		return "Hello %s [%s] test feature".formatted(greet, greetSecret);
 		
 	}
 
